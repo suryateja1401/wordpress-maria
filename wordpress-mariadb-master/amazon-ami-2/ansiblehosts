@@ -1,0 +1,5 @@
+[appservers]
+appserver1
+
+[dbservers]
+dbserver1
