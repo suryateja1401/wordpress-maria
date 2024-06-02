@@ -1,0 +1,61 @@
+---
+- name: Install Apache and configure it
+  hosts: all
+  become: yes
+  vars:
+    pubip: ""
+
+  tasks:
+    - name: Install the latest version of Apache
+      yum:
+        name: httpd
+        state: latest
+
+    - name: Enable and start Apache service
+      systemd:
+        name: httpd
+        enabled: yes
+        state: started
+
+    - name: Copy index.html
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+        owner: apache
+        group: apache
+
+    - name: Modify httpd.conf file to set ServerName
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^#ServerName www.example.com'
+        replace: 'ServerName {{ pubip }}'
+      notify: restart_apache
+
+  handlers:
+    - name: restart_apache
+      systemd:
+        name: httpd
+        state: restarted
+
+    - name: Get IMDSv2 token
+      shell: >
+        curl -X PUT "http://169.254.169.254/latest/api/token"
+        -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"
+      register: imds_token
+
+    - name: Get public IPv4 address
+      uri:
+        url: http://169.254.169.254/latest/meta-data/public-ipv4
+        headers:
+          X-aws-ec2-metadata-token: "{{ imds_token.stdout }}"
+      register: public_ip
+
+    - name: Show public IPv4 address
+      debug:
+        msg: "Public IPv4 Address: {{ public_ip.content }}"
+
+    - name: Set fact for public IP
+      set_fact:
+        pubip: "{{ public_ip.content }}"
+      delegate_to: all
+      run_once: true
