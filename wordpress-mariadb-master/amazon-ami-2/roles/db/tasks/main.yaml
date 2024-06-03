@@ -17,13 +17,13 @@
 
 - name: create admin user with password
   mysql_user:
-    name: "{{DB_USER}}"
+    name: "{{db_user}}"
     host: '%'
-    password: "{{DB_PASSWORD}}"
+    password: "{{db_pass}}"
     priv: '*.*:ALL'
     state: present
 
 - name: create database 
   mysql_db:
-    name: "{{DB_NAME}}"
+    name: "{{db_name}}"
     state: present
